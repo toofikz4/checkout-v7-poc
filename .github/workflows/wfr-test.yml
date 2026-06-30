@@ -1,0 +1,39 @@
+name: Workflow Run Test (checkout v7 bypass vector 2)
+on:
+  workflow_run:
+    workflows: ["PR Target Test (checkout v7 protection)"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  check-wfr:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.event == 'pull_request_target'
+    steps:
+      - name: Debug payload
+        run: |
+          echo "workflow_run.event = ${{ github.event.workflow_run.event }}"
+          echo "workflow_run.head_repository.id = ${{ github.event.workflow_run.head_repository.id }}"
+          echo "workflow_run.head_sha = ${{ github.event.workflow_run.head_sha }}"
+          echo "workflow_run.head_commit.id = ${{ github.event.workflow_run.head_commit.id }}"
+          echo "PR count = ${{ github.event.workflow_run.pull_requests && '1+' || '0' }}"
+          
+      - name: Checkout PR head via workflow_run (v7 should block)
+        if: github.event.workflow_run.pull_requests[0]
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.pull_requests[0].head.sha }}
+          
+      - name: Show what was checked out
+        run: |
+          echo "=== CHECKED OUT CONTENT ==="
+          echo "HEAD SHA: $(git rev-parse HEAD)"
+          ls -la
+          if [ -f CANARY_FORK_CODE.txt ]; then
+            echo "FORK CODE CHECKED OUT DESPITE V7 PROTECTION (BYPASS VECTOR 2)"
+            cat CANARY_FORK_CODE.txt
+          else
+            echo "Base repo code"
+          fi
