@@ -1,0 +1,30 @@
+name: PR Target Test (checkout v7 protection)
+on:
+  pull_request_target:
+    types: [opened, labeled, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  check-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head (v7 should block fork checkout)
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      
+      - name: Show what was checked out
+        run: |
+          echo "=== CHECKED OUT CONTENT ==="
+          echo "HEAD SHA: $(git rev-parse HEAD)"
+          echo "Files:"
+          ls -la
+          echo "=== CANARY CHECK ==="
+          if [ -f CANARY_FORK_CODE.txt ]; then
+            echo "FORK CODE CHECKED OUT DESPITE V7 PROTECTION"
+            cat CANARY_FORK_CODE.txt
+          else
+            echo "Base repo code (protection may have worked or no fork)"
+          fi
